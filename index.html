@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Shatla Care</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green-deep:   #1a3d23;
+      --green-main:   #2d6a35;
+      --green-mid:    #3d8b40;
+      --green-light:  #e8f5e9;
+      --green-border: #c8e6c9;
+      --white:        #ffffff;
+      --bg:           #f4f9f4;
+      --text:         #1a2e1a;
+      --text-muted:   #5a7a5a;
+      --shadow:       0 2px 12px rgba(30,70,30,0.10);
+      --radius:       14px;
+      --radius-sm:    8px;
+    }
+
+    body {
+      font-family: 'Noto Sans Arabic', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Loader ─────────────────────────────── */
+    #loader {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 100vh; gap: 16px;
+    }
+    .loader-leaf {
+      width: 48px; height: 48px;
+      background: var(--green-main);
+      border-radius: 0 50% 0 50%;
+      animation: spin 1.2s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loader p { color: var(--text-muted); font-size: 14px; }
+
+    /* ── Error ──────────────────────────────── */
+    #error-screen {
+      display: none; flex-direction: column; align-items: center;
+      justify-content: center; height: 100vh; gap: 12px; padding: 24px; text-align: center;
+    }
+    #error-screen .err-icon { font-size: 48px; }
+    #error-screen h2 { color: var(--green-deep); }
+    #error-screen p { color: var(--text-muted); font-size: 14px; }
+
+    /* ── App ────────────────────────────────── */
+    #app { display: none; }
+
+    /* ── Header ─────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, var(--green-deep) 0%, var(--green-main) 100%);
+      color: white; padding: 24px 20px 28px;
+      position: relative; overflow: hidden;
+    }
+    header::before {
+      content: ''; position: absolute; top: -40px; left: -40px;
+      width: 180px; height: 180px; border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+    }
+    header::after {
+      content: ''; position: absolute; bottom: -60px; right: -20px;
+      width: 220px; height: 220px; border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+    }
+    .header-brand {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 16px; position: relative; z-index: 1;
+    }
+    .brand-icon {
+      width: 36px; height: 36px; background: rgba(255,255,255,0.2);
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .brand-name { font-size: 15px; font-weight: 600; opacity: 0.9; }
+    .brand-tagline { font-size: 11px; opacity: 0.6; margin-top: 1px; }
+
+    .header-deal { position: relative; z-index: 1; }
+    .deal-name { font-size: 24px; font-weight: 800; line-height: 1.2; margin-bottom: 4px; }
+    .deal-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .deal-badge {
+      background: rgba(255,255,255,0.15); border-radius: 20px;
+      padding: 4px 12px; font-size: 12px; font-weight: 500;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .deal-contact { margin-top: 12px; display: flex; flex-direction: column; gap: 4px; }
+    .contact-item { font-size: 13px; opacity: 0.8; display: flex; align-items: center; gap: 6px; }
+
+    /* ── Stats bar ───────────────────────────── */
+    .stats-bar {
+      background: var(--white); border-bottom: 1px solid var(--green-border);
+      display: flex; justify-content: space-around; padding: 14px 0;
+    }
+    .stat { text-align: center; }
+    .stat-value { font-size: 22px; font-weight: 700; color: var(--green-main); line-height: 1; }
+    .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+    /* ── Section title ───────────────────────── */
+    .section-title {
+      padding: 20px 16px 8px; font-size: 13px;
+      color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px;
+    }
+
+    /* ── Visit Card ──────────────────────────── */
+    .visit-card {
+      background: var(--white); margin: 0 12px 10px;
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      overflow: hidden; border: 1px solid var(--green-border);
+    }
+    .visit-header {
+      padding: 14px 16px; cursor: pointer;
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+      user-select: none; -webkit-tap-highlight-color: transparent;
+    }
+    .visit-header:active { background: var(--green-light); }
+    .visit-info { flex: 1; min-width: 0; }
+    .visit-date { font-size: 16px; font-weight: 700; color: var(--green-deep); }
+    .visit-title { font-size: 13px; color: var(--text-muted); margin-top: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .visit-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .chip {
+      font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 500;
+      display: inline-flex; align-items: center; gap: 3px;
+    }
+    .chip-status-submitted { background: #e3f2fd; color: #1565c0; }
+    .chip-status-approved  { background: #e8f5e9; color: #2e7d32; }
+    .chip-status-done      { background: #e8f5e9; color: #2e7d32; }
+    .chip-status-default   { background: #f5f5f5; color: #616161; }
+    .chip-tag              { background: var(--green-light); color: var(--green-main); }
+    .chip-urgent           { background: #fff3e0; color: #e65100; }
+    .chip-pest             { background: #fce4ec; color: #c62828; }
+
+    .visit-kpis { display: flex; gap: 14px; margin-top: 8px; }
+    .kpi-item { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted); }
+    .kpi-icon { font-size: 13px; }
+
+    .visit-photos-strip { display: flex; gap: 5px; margin-top: 10px; }
+    .strip-photo {
+      width: 52px; height: 52px; border-radius: 8px;
+      object-fit: cover; background: var(--green-light);
+      flex-shrink: 0;
+    }
+    .strip-more {
+      width: 52px; height: 52px; border-radius: 8px;
+      background: var(--green-main); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 600; flex-shrink: 0;
+    }
+
+    .visit-toggle {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--green-light); display: flex; align-items: center; justify-content: center;
+      color: var(--green-main); font-size: 14px; flex-shrink: 0;
+      transition: transform 0.25s; margin-top: 2px;
+    }
+    .visit-card.open .visit-toggle { transform: rotate(180deg); }
+
+    /* ── Visit body (expanded) ───────────────── */
+    .visit-body {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.35s ease;
+      border-top: 1px solid transparent;
+    }
+    .visit-card.open .visit-body {
+      max-height: 4000px;
+      border-top-color: var(--green-border);
+    }
+    .visit-body-inner { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* Report sections */
+    .report-section { border-radius: var(--radius-sm); overflow: hidden; }
+    .report-section-header {
+      padding: 10px 14px; font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; gap: 7px; letter-spacing: 0.3px;
+    }
+    .report-section-body { padding: 12px 14px; font-size: 13px; line-height: 1.8; }
+
+    .sec-notes .report-section-header  { background: #e8eaf6; color: #283593; }
+    .sec-notes .report-section-body    { background: #f3f4fb; color: var(--text); }
+    .sec-tasks .report-section-header  { background: var(--green-light); color: var(--green-deep); }
+    .sec-tasks .report-section-body    { background: #f7fdf7; color: var(--text); }
+    .sec-recs  .report-section-header  { background: #fff8e1; color: #f57f17; }
+    .sec-recs  .report-section-body    { background: #fffde7; color: var(--text); }
+
+    /* Task items as checklist */
+    .task-item { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 6px; }
+    .task-item::before {
+      content: '✓'; color: var(--green-main); font-weight: 700;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .task-item.missed::before { content: '✕'; color: #e53935; }
+
+    /* Rec items */
+    .rec-item { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 6px; }
+    .rec-item::before { content: '→'; color: #f57f17; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+
+    /* Photo gallery */
+    .photo-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+    .gallery-photo {
+      aspect-ratio: 1; object-fit: cover; border-radius: 8px;
+      width: 100%; cursor: pointer; background: var(--green-light);
+      transition: opacity 0.15s;
+    }
+    .gallery-photo:active { opacity: 0.8; }
+    .gallery-title {
+      font-size: 12px; font-weight: 600; color: var(--text-muted);
+      margin-bottom: 8px; display: flex; align-items: center; gap: 5px;
+    }
+
+    /* Visit details row */
+    .detail-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .detail-item {
+      flex: 1; min-width: 100px;
+      background: var(--green-light); border-radius: var(--radius-sm);
+      padding: 10px 12px;
+    }
+    .detail-item-label { font-size: 11px; color: var(--text-muted); margin-bottom: 3px; }
+    .detail-item-value { font-size: 15px; font-weight: 700; color: var(--green-deep); }
+
+    /* ── Lightbox ─────────────────────────────── */
+    #lightbox {
+      display: none; position: fixed; inset: 0; z-index: 999;
+      background: rgba(0,0,0,0.92); align-items: center; justify-content: center;
+    }
+    #lightbox.open { display: flex; }
+    #lightbox img { max-width: 95vw; max-height: 90vh; border-radius: 8px; object-fit: contain; }
+    #lightbox-close {
+      position: absolute; top: 16px; left: 16px;
+      width: 36px; height: 36px; background: rgba(255,255,255,0.2);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 20px; color: white;
+    }
+
+    /* ── Footer ──────────────────────────────── */
+    footer {
+      text-align: center; padding: 24px 16px;
+      font-size: 12px; color: var(--text-muted);
+    }
+    footer strong { color: var(--green-main); }
+
+    /* ── Empty state ──────────────────────────── */
+    .empty { text-align: center; padding: 48px 24px; color: var(--text-muted); }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty p { font-size: 14px; }
+  </style>
+</head>
+<body>
+
+<!-- Loader -->
+<div id="loader">
+  <div class="loader-leaf"></div>
+  <p>جاري تحميل بياناتك…</p>
+</div>
+
+<!-- Error -->
+<div id="error-screen">
+  <div class="err-icon">🌿</div>
+  <h2>تعذّر تحميل البيانات</h2>
+  <p id="error-msg">تحقق من الرابط وحاول مجدداً</p>
+</div>
+
+<!-- App -->
+<div id="app">
+  <header>
+    <div class="header-brand">
+      <div class="brand-icon">🌿</div>
+      <div>
+        <div class="brand-name">Shatla Care</div>
+        <div class="brand-tagline">بوابة العميل | Client Portal</div>
+      </div>
+    </div>
+    <div class="header-deal">
+      <div class="deal-name" id="deal-name"></div>
+      <div class="deal-meta" id="deal-meta"></div>
+      <div class="deal-contact" id="deal-contact"></div>
+    </div>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-value" id="stat-visits">—</div>
+      <div class="stat-label">زيارة</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-last">—</div>
+      <div class="stat-label">آخر زيارة</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-photos">—</div>
+      <div class="stat-label">صورة</div>
+    </div>
+  </div>
+
+  <div class="section-title">سجل الزيارات والتقارير</div>
+  <div id="visits-list"></div>
+
+  <footer>
+    مدعوم بتقنية <strong>Shatla Pulsar</strong> · جميع البيانات سرية
+  </footer>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox">
+  <div id="lightbox-close">✕</div>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<script>
+/* ══════════════════════════════
+   Shatla Care — Client Portal
+   ══════════════════════════════ */
+
+function getDealId() {
+  const hash = location.hash.replace('#', '');
+  const params = new URLSearchParams(hash);
+  return params.get('deal_id') || new URLSearchParams(location.search).get('deal_id');
+}
+
+function formatDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function formatDateShort(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' });
+}
+
+function statusChipClass(s) {
+  const sl = (s || '').toLowerCase();
+  if (sl.includes('approved') || sl.includes('done')) return 'chip-status-approved';
+  if (sl.includes('submitted') || sl.includes('report')) return 'chip-status-submitted';
+  return 'chip-status-default';
+}
+
+function statusLabel(s) {
+  const map = {
+    'Report Submitted': 'تم الإرسال',
+    'Done': 'مكتملة',
+    'Approved': 'معتمدة',
+    'Pending': 'قيد المراجعة',
+    'On Going': 'جارية'
+  };
+  return map[s] || s;
+}
+
+function tagChipClass(tag) {
+  if (tag.toLowerCase().includes('urgent')) return 'chip-urgent';
+  if (tag.toLowerCase().includes('pest') || tag.toLowerCase().includes('disease')) return 'chip-pest';
+  return 'chip-tag';
+}
+
+/* Parse AI report into 3 sections */
+function parseReport(text) {
+  if (!text) return { notes: '', tasks: [], recs: [] };
+
+  const notesMatch = text.match(/Technical Notes:\s*([\s\S]*?)(?=Tasks Done:|$)/i);
+  const tasksMatch = text.match(/Tasks Done:\s*([\s\S]*?)(?=Recommendations or Special Instructions:|$)/i);
+  const recsMatch  = text.match(/Recommendations or Special Instructions:\s*([\s\S]*?)$/i);
+
+  const notes = (notesMatch?.[1] || '').trim();
+
+  const parseList = (raw) => {
+    return (raw || '').trim().split('\n')
+      .map(l => l.trim().replace(/^[-–•]\s*/, ''))
+      .filter(Boolean);
+  };
+
+  return {
+    notes,
+    tasks: parseList(tasksMatch?.[1]),
+    recs:  parseList(recsMatch?.[1])
+  };
+}
+
+function buildReportHTML(aiReport) {
+  if (!aiReport) return '<div class="empty"><div class="empty-icon">📋</div><p>لا يوجد تقرير بعد</p></div>';
+  const { notes, tasks, recs } = parseReport(aiReport);
+  let html = '';
+
+  if (notes) {
+    html += `<div class="report-section sec-notes">
+      <div class="report-section-header">🔍 الملاحظات الفنية</div>
+      <div class="report-section-body">${notes.replace(/\n/g, '<br>')}</div>
+    </div>`;
+  }
+
+  if (tasks.length) {
+    const items = tasks.map(t => {
+      const isMissed = /skipped|missed|لم يتم|تأجيل/i.test(t);
+      return `<div class="task-item${isMissed ? ' missed' : ''}">${t}</div>`;
+    }).join('');
+    html += `<div class="report-section sec-tasks">
+      <div class="report-section-header">✅ المهام المنجزة</div>
+      <div class="report-section-body">${items}</div>
+    </div>`;
+  }
+
+  if (recs.length) {
+    const items = recs.map(r => `<div class="rec-item">${r}</div>`).join('');
+    html += `<div class="report-section sec-recs">
+      <div class="report-section-header">💡 التوصيات والتعليمات</div>
+      <div class="report-section-body">${items}</div>
+    </div>`;
+  }
+
+  return html || '<p style="font-size:13px;color:var(--text-muted);">—</p>';
+}
+
+function buildVisitCard(visit, index) {
+  const date = formatDate(visit.submissionDate);
+  const dateShort = formatDateShort(visit.submissionDate);
+  const statusClass = statusChipClass(visit.status);
+  const statusLbl = statusLabel(visit.status);
+
+  // chips: status + reported tags
+  let chips = `<span class="chip ${statusClass}">${statusLbl}</span>`;
+  (visit.reportedStatus || []).forEach(tag => {
+    const cl = tagChipClass(tag);
+    chips += `<span class="chip ${cl}">${tag}</span>`;
+  });
+
+  // kpis
+  let kpis = '';
+  if (visit.spentTime) kpis += `<span class="kpi-item"><span class="kpi-icon">⏱</span>${visit.spentTime} ساعة</span>`;
+  if (visit.bags) kpis += `<span class="kpi-item"><span class="kpi-icon">🗑</span>${visit.bags} شياكر</span>`;
+  if (visit.photoCount) kpis += `<span class="kpi-item"><span class="kpi-icon">📷</span>${visit.photoCount} صورة</span>`;
+
+  // photo strip (first 4)
+  let strip = '';
+  if (visit.photos && visit.photos.length) {
+    const shown = visit.photos.slice(0, 3);
+    const extra = visit.photos.length - shown.length;
+    shown.forEach((url, i) => {
+      strip += `<img class="strip-photo" src="${url}" alt="" loading="lazy">`;
+    });
+    if (extra > 0) strip += `<div class="strip-more">+${extra}</div>`;
+  }
+
+  // visit detail row
+  let details = '';
+  if (visit.submissionDate) details += `<div class="detail-item"><div class="detail-item-label">تاريخ التقرير</div><div class="detail-item-value">${dateShort}</div></div>`;
+  if (visit.spentTime) details += `<div class="detail-item"><div class="detail-item-label">مدة الزيارة</div><div class="detail-item-value">${visit.spentTime}</div></div>`;
+  if (visit.bags) details += `<div class="detail-item"><div class="detail-item-label">عدد الشكاير</div><div class="detail-item-value">${visit.bags}</div></div>`;
+
+  // full photo gallery
+  let gallery = '';
+  if (visit.photos && visit.photos.length) {
+    gallery = `<div>
+      <div class="gallery-title">📷 صور الزيارة (${visit.photos.length})</div>
+      <div class="photo-gallery">
+        ${visit.photos.map((url, i) => `<img class="gallery-photo" src="${url}" alt="صورة ${i+1}" loading="lazy" onclick="openLightbox('${url}')">`).join('')}
+      </div>
+    </div>`;
+  }
+
+  const reportHTML = buildReportHTML(visit.aiReport);
+
+  return `
+  <div class="visit-card" id="vc-${index}">
+    <div class="visit-header" onclick="toggleCard(${index})">
+      <div class="visit-info">
+        <div class="visit-date">${date}</div>
+        <div class="visit-title">${visit.title || 'زيارة صيانة'}</div>
+        <div class="visit-chips">${chips}</div>
+        ${kpis ? `<div class="visit-kpis">${kpis}</div>` : ''}
+        ${strip ? `<div class="visit-photos-strip">${strip}</div>` : ''}
+      </div>
+      <div class="visit-toggle">▼</div>
+    </div>
+    <div class="visit-body">
+      <div class="visit-body-inner">
+        ${details ? `<div class="detail-row">${details}</div>` : ''}
+        ${reportHTML}
+        ${gallery}
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleCard(index) {
+  const card = document.getElementById('vc-' + index);
+  card.classList.toggle('open');
+}
+
+function openLightbox(url) {
+  document.getElementById('lightbox-img').src = url;
+  document.getElementById('lightbox').classList.add('open');
+}
+document.getElementById('lightbox-close').onclick = () => {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lightbox-img').src = '';
+};
+document.getElementById('lightbox').addEventListener('click', function(e) {
+  if (e.target === this) {
+    this.classList.remove('open');
+    document.getElementById('lightbox-img').src = '';
+  }
+});
+
+/* ── Main ──────────────────────── */
+async function init() {
+  const dealId = getDealId();
+  if (!dealId) {
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('error-screen').style.display = 'flex';
+    document.getElementById('error-msg').textContent = 'الرابط غير صحيح — يرجى استخدام الرابط المرسل إليك';
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/portal?deal_id=${encodeURIComponent(dealId)}`);
+    if (!res.ok) throw new Error('Deal not found');
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    render(data);
+  } catch (e) {
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('error-screen').style.display = 'flex';
+    document.getElementById('error-msg').textContent = e.message || 'خطأ في تحميل البيانات';
+  }
+}
+
+function render(data) {
+  const { deal, visits, totalVisits, lastVisit } = data;
+
+  // Header
+  document.title = `Shatla Care — ${deal.name}`;
+  document.getElementById('deal-name').textContent = deal.name;
+
+  const meta = document.getElementById('deal-meta');
+  if (deal.pipeline) meta.innerHTML += `<span class="deal-badge">🏷 ${deal.pipeline}</span>`;
+  if (deal.stage)    meta.innerHTML += `<span class="deal-badge">📌 ${deal.stage}</span>`;
+  if (deal.region)   meta.innerHTML += `<span class="deal-badge">📍 ${deal.region}</span>`;
+
+  const contact = document.getElementById('deal-contact');
+  if (deal.phone)   contact.innerHTML += `<div class="contact-item">📞 ${deal.phone}</div>`;
+  if (deal.address) contact.innerHTML += `<div class="contact-item">🏠 ${deal.address}</div>`;
+
+  // Stats
+  document.getElementById('stat-visits').textContent = totalVisits;
+  document.getElementById('stat-last').textContent = lastVisit ? formatDateShort(lastVisit) : '—';
+  const totalPhotos = visits.reduce((s, v) => s + (v.photoCount || 0), 0);
+  document.getElementById('stat-photos').textContent = totalPhotos || '—';
+
+  // Visits
+  const list = document.getElementById('visits-list');
+  if (!visits.length) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">🌱</div><p>لا توجد تقارير متاحة بعد</p></div>`;
+  } else {
+    list.innerHTML = visits.map((v, i) => buildVisitCard(v, i)).join('');
+    // Auto-open first card
+    const first = document.getElementById('vc-0');
+    if (first) first.classList.add('open');
+  }
+
+  // Show app
+  document.getElementById('loader').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+init();
+</script>
+</body>
+</html>
