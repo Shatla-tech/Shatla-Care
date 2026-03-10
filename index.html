@@ -10,16 +10,17 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --green-deep:   #1a3d23;
-      --green-main:   #2d6a35;
-      --green-mid:    #3d8b40;
-      --green-light:  #e8f5e9;
-      --green-border: #c8e6c9;
+      --green-deep:   #075e4e;
+      --green-main:   #0b8571;
+      --green-mid:    #0da688;
+      --green-light:  #e6f4f1;
+      --green-border: #b8ddd8;
+      --green-soft:   #afd69d;
       --white:        #ffffff;
-      --bg:           #f4f9f4;
-      --text:         #1a2e1a;
-      --text-muted:   #5a7a5a;
-      --shadow:       0 2px 12px rgba(30,70,30,0.10);
+      --bg:           #f2f9f7;
+      --text:         #0d2b25;
+      --text-muted:   #4a7a70;
+      --shadow:       0 2px 12px rgba(11,133,113,0.10);
       --radius:       14px;
       --radius-sm:    8px;
     }
@@ -37,13 +38,8 @@
       display: flex; flex-direction: column; align-items: center;
       justify-content: center; height: 100vh; gap: 16px;
     }
-    .loader-leaf {
-      width: 48px; height: 48px;
-      background: var(--green-main);
-      border-radius: 0 50% 0 50%;
-      animation: spin 1.2s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-logo { width: 72px; height: 72px; object-fit: contain; animation: pulse 1.4s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.7; transform:scale(0.94); } }
     #loader p { color: var(--text-muted); font-size: 14px; }
 
     /* ── Error ──────────────────────────────── */
@@ -67,22 +63,19 @@
     header::before {
       content: ''; position: absolute; top: -40px; left: -40px;
       width: 180px; height: 180px; border-radius: 50%;
-      background: rgba(255,255,255,0.05);
+      background: rgba(175,214,157,0.08);
     }
     header::after {
       content: ''; position: absolute; bottom: -60px; right: -20px;
       width: 220px; height: 220px; border-radius: 50%;
-      background: rgba(255,255,255,0.04);
+      background: rgba(175,214,157,0.06);
     }
     .header-brand {
-      display: flex; align-items: center; gap: 10px;
+      display: flex; align-items: center; gap: 12px;
       margin-bottom: 16px; position: relative; z-index: 1;
     }
-    .brand-icon {
-      width: 36px; height: 36px; background: rgba(255,255,255,0.2);
-      border-radius: 10px; display: flex; align-items: center; justify-content: center;
-      font-size: 20px;
-    }
+    .brand-logo { height: 38px; width: auto; object-fit: contain; filter: brightness(0) invert(1); }
+    .brand-divider { width: 1px; height: 30px; background: rgba(255,255,255,0.3); }
     .brand-name { font-size: 15px; font-weight: 600; opacity: 0.9; }
     .brand-tagline { font-size: 11px; opacity: 0.6; margin-top: 1px; }
 
@@ -187,12 +180,12 @@
     }
     .report-section-body { padding: 12px 14px; font-size: 13px; line-height: 1.8; }
 
-    .sec-notes .report-section-header  { background: #e8eaf6; color: #283593; }
-    .sec-notes .report-section-body    { background: #f3f4fb; color: var(--text); }
-    .sec-tasks .report-section-header  { background: var(--green-light); color: var(--green-deep); }
-    .sec-tasks .report-section-body    { background: #f7fdf7; color: var(--text); }
-    .sec-recs  .report-section-header  { background: #fff8e1; color: #f57f17; }
-    .sec-recs  .report-section-body    { background: #fffde7; color: var(--text); }
+    .sec-notes .report-section-header  { background: #dff0ed; color: var(--green-deep); }
+    .sec-notes .report-section-body    { background: #f0faf8; color: var(--text); }
+    .sec-tasks .report-section-header  { background: #d6f0e6; color: #075e4e; }
+    .sec-tasks .report-section-body    { background: #f0faf5; color: var(--text); }
+    .sec-recs  .report-section-header  { background: #d8efe8; color: var(--green-main); }
+    .sec-recs  .report-section-body    { background: #edf8f5; color: var(--text); }
 
     /* Task items as checklist */
     .task-item { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 6px; }
@@ -260,7 +253,7 @@
 
 <!-- Loader -->
 <div id="loader">
-  <div class="loader-leaf"></div>
+  <img class="loader-logo" src="/logo-shatla-sky.png" alt="Shatla Sky">
   <p>جاري تحميل بياناتك…</p>
 </div>
 
@@ -275,7 +268,8 @@
 <div id="app">
   <header>
     <div class="header-brand">
-      <div class="brand-icon">🌿</div>
+      <img class="brand-logo" src="/logo-shatla-sky.png" alt="Shatla Sky">
+      <div class="brand-divider"></div>
       <div>
         <div class="brand-name">Shatla Care</div>
         <div class="brand-tagline">بوابة العميل | Client Portal</div>
@@ -307,7 +301,8 @@
   <div id="visits-list"></div>
 
   <footer>
-    مدعوم بتقنية <strong>Shatla Pulsar</strong> · جميع البيانات سرية
+    <img src="/logo-shatla-sky.png" alt="Shatla Sky" style="height:22px;opacity:0.5;vertical-align:middle;margin-bottom:2px;"><br>
+    <strong>Shatla Sky</strong> · Nurturing Communities · جميع البيانات سرية
   </footer>
 </div>
 
