@@ -363,9 +363,9 @@ function tagChipClass(tag) {
 function parseReport(text) {
   if (!text) return { notes: '', tasks: [], recs: [] };
 
-  const notesMatch = text.match(/Technical Notes:\s*([\s\S]*?)(?=Tasks Done:|$)/i);
-  const tasksMatch = text.match(/Tasks Done:\s*([\s\S]*?)(?=Recommendations or Special Instructions:|$)/i);
-  const recsMatch  = text.match(/Recommendations or Special Instructions:\s*([\s\S]*?)$/i);
+  const notesMatch = text.match(/(?:Technical Notes|الملاحظات الفنية)\s*:?\s*([\s\S]*?)(?=Tasks Done|المهام المنجزة|$)/i);
+  const tasksMatch = text.match(/(?:Tasks Done|المهام المنجزة)\s*:?\s*([\s\S]*?)(?=Recommendations|التوصيات|$)/i);
+  const recsMatch  = text.match(/(?:Recommendations.*?:|التوصيات.*?:)\s*([\s\S]*?)$/i);
 
   const notes = (notesMatch?.[1] || '').trim();
 
@@ -417,13 +417,12 @@ function buildReportHTML(aiReport) {
 }
 
 function buildVisitCard(visit, index) {
-  const date = formatDate(visit.submissionDate);
+  const date = formatDate(visit.startTime || visit.submissionDate);
   const dateShort = formatDateShort(visit.submissionDate);
-  const statusClass = statusChipClass(visit.status);
-  const statusLbl = statusLabel(visit.status);
+  const cleanTitle = (visit.title || 'زيارة صيانة').replace(/\s*\d{4}-\d{2}-\d{2}T[\d:.+]+\s*/g, '').trim();
 
-  // chips: status + reported tags
-  let chips = `<span class="chip ${statusClass}">${statusLbl}</span>`;
+  // chips: reported tags only (no internal status chip for clients)
+  let chips = '';
   (visit.reportedStatus || []).forEach(tag => {
     const cl = tagChipClass(tag);
     chips += `<span class="chip ${cl}">${tag}</span>`;
@@ -432,7 +431,7 @@ function buildVisitCard(visit, index) {
   // kpis
   let kpis = '';
   if (visit.spentTime) kpis += `<span class="kpi-item"><span class="kpi-icon">⏱</span>${visit.spentTime} ساعة</span>`;
-  if (visit.bags) kpis += `<span class="kpi-item"><span class="kpi-icon">🗑</span>${visit.bags} شياكر</span>`;
+  if (visit.bags) kpis += `<span class="kpi-item"><span class="kpi-icon">🗑</span>${visit.bags} شكاير</span>`;
   if (visit.photoCount) kpis += `<span class="kpi-item"><span class="kpi-icon">📷</span>${visit.photoCount} صورة</span>`;
 
   // photo strip (first 4)
@@ -441,13 +440,14 @@ function buildVisitCard(visit, index) {
     const shown = visit.photos.slice(0, 3);
     const extra = visit.photos.length - shown.length;
     shown.forEach((url, i) => {
-      strip += `<img class="strip-photo" src="${url}" alt="" loading="lazy">`;
+      strip += `<img class="strip-photo" src="${url}" alt="" loading="lazy" onerror="this.style.display='none'">`;
     });
     if (extra > 0) strip += `<div class="strip-more">+${extra}</div>`;
   }
 
   // visit detail row
   let details = '';
+  if (visit.responsible) details += `<div class="detail-item"><div class="detail-item-label">المهندس المسؤول</div><div class="detail-item-value">${visit.responsible}</div></div>`;
   if (visit.submissionDate) details += `<div class="detail-item"><div class="detail-item-label">تاريخ التقرير</div><div class="detail-item-value">${dateShort}</div></div>`;
   if (visit.spentTime) details += `<div class="detail-item"><div class="detail-item-label">مدة الزيارة</div><div class="detail-item-value">${visit.spentTime}</div></div>`;
   if (visit.bags) details += `<div class="detail-item"><div class="detail-item-label">عدد الشكاير</div><div class="detail-item-value">${visit.bags}</div></div>`;
@@ -458,7 +458,7 @@ function buildVisitCard(visit, index) {
     gallery = `<div>
       <div class="gallery-title">📷 صور الزيارة (${visit.photos.length})</div>
       <div class="photo-gallery">
-        ${visit.photos.map((url, i) => `<img class="gallery-photo" src="${url}" alt="صورة ${i+1}" loading="lazy" onclick="openLightbox('${url}')">`).join('')}
+        ${visit.photos.map((url, i) => `<img class="gallery-photo" src="${url}" alt="صورة ${i+1}" loading="lazy" onclick="openLightbox('${url}')" onerror="this.style.display='none'">`).join('')}
       </div>
     </div>`;
   }
@@ -470,7 +470,7 @@ function buildVisitCard(visit, index) {
     <div class="visit-header" onclick="toggleCard(${index})">
       <div class="visit-info">
         <div class="visit-date">${date}</div>
-        <div class="visit-title">${visit.title || 'زيارة صيانة'}</div>
+        <div class="visit-title">${cleanTitle}</div>
         <div class="visit-chips">${chips}</div>
         ${kpis ? `<div class="visit-kpis">${kpis}</div>` : ''}
         ${strip ? `<div class="visit-photos-strip">${strip}</div>` : ''}

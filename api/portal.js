@@ -52,10 +52,11 @@ export default async function handler(req, res) {
 
     const visits = (tasksData.results || []).map(p => {
       const props = p.properties;
+      const elapsedText = (props['Elapsed Time']?.rich_text || []).map(r => r.plain_text).join('');
       const spentMins = props['Spent time']?.formula?.number || null;
-      const spentFormatted = spentMins != null
+      const spentFormatted = elapsedText || (spentMins != null
         ? `${Math.floor(spentMins / 60)}:${String(spentMins % 60).padStart(2, '0')}`
-        : null;
+        : null);
 
       return {
         id: p.id,
@@ -67,7 +68,8 @@ export default async function handler(req, res) {
         spentTime:      spentFormatted,
         bags:           props['عدد الشكاير']?.number || 0,
         photoCount:     props['Photo Count']?.number || 0,
-        photos:         (props['Photos']?.files || []).map(f => f.external?.url || f.file?.url || '').filter(Boolean),
+        responsible:     (props['Responsible']?.people || []).map(p => p.name).join(', ') || '',
+        photos:         (props['Photos']?.files || []).map(f => f.external?.url || f.file?.url || '').filter(u => u && u.startsWith('http')),
         aiReport:       (props['Ai Report']?.rich_text || []).map(r => r.plain_text).join(''),
         reportedStatus: (props['Reported Status']?.multi_select || []).map(s => s.name),
         tags:           (props['Tags']?.multi_select || []).map(s => s.name)
