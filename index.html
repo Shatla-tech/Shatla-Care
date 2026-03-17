@@ -569,7 +569,21 @@ function render(data) {
   document.getElementById('app').style.display = 'block';
 }
 
-init();
+/* Run init — retry once on hashchange in case hash isn't ready yet */
+var _initDone = false;
+async function safeInit() {
+  if (_initDone) return;
+  const id = getDealId();
+  if (!id) return;          // no deal_id yet — wait
+  _initDone = true;
+  init();
+}
+
+window.addEventListener('hashchange', safeInit);
+document.addEventListener('DOMContentLoaded', safeInit);
+
+/* Fallback: if DOMContentLoaded already fired */
+if (document.readyState !== 'loading') safeInit();
 </script>
 </body>
 </html>
