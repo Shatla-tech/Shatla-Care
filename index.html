@@ -247,6 +247,39 @@
     .empty { text-align: center; padding: 48px 24px; color: var(--text-muted); }
     .empty-icon { font-size: 48px; margin-bottom: 12px; }
     .empty p { font-size: 14px; }
+
+    /* ── Report Teaser ───────────────────────── */
+    .report-teaser {
+      font-size: 12px; color: var(--text-muted); margin-top: 6px;
+      line-height: 1.6; display: -webkit-box;
+      -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .visit-card.open .report-teaser { display: none; }
+    .read-more-cta {
+      display: inline-flex; align-items: center; gap: 4px;
+      margin-top: 6px; font-size: 12px; font-weight: 600;
+      color: var(--green-main); cursor: pointer;
+    }
+    .visit-card.open .read-more-cta { display: none; }
+
+    /* ── Date Filter ─────────────────────────── */
+    .filter-bar {
+      padding: 8px 12px 2px; display: flex; gap: 6px;
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .filter-bar::-webkit-scrollbar { display: none; }
+    .filter-pill {
+      flex-shrink: 0; padding: 5px 14px; border-radius: 20px;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      border: 1.5px solid var(--green-border); background: var(--white);
+      color: var(--text-muted); transition: all 0.15s; white-space: nowrap;
+      -webkit-tap-highlight-color: transparent; user-select: none;
+    }
+    .filter-pill.active {
+      background: var(--green-main); color: white; border-color: var(--green-main);
+    }
+    .filter-pill:active { opacity: 0.75; }
   </style>
 </head>
 <body>
@@ -298,6 +331,7 @@
   </div>
 
   <div class="section-title">سجل الزيارات والتقارير</div>
+  <div id="filter-bar" class="filter-bar"></div>
   <div id="visits-list"></div>
 
   <footer>
@@ -345,6 +379,7 @@ function statusChipClass(s) {
 function statusLabel(s) {
   const map = {
     'Report Submitted': 'تم الإرسال',
+    'Report Sent':      'تم الإرسال',
     'Done': 'مكتملة',
     'Approved': 'معتمدة',
     'Pending': 'قيد المراجعة',
@@ -357,6 +392,21 @@ function tagChipClass(tag) {
   if (tag.toLowerCase().includes('urgent')) return 'chip-urgent';
   if (tag.toLowerCase().includes('pest') || tag.toLowerCase().includes('disease')) return 'chip-pest';
   return 'chip-tag';
+}
+
+/* Extract plain-text teaser from AI report */
+function getReportTeaser(text, maxLen) {
+  maxLen = maxLen || 110;
+  if (!text) return '';
+  var clean = text
+    .replace(/(?:Technical Notes|الملاحظات الفنية|Tasks Done|المهام المنجزة|Recommendations[^:\n]*:|التوصيات[^:\n]*:)\s*/gi, '')
+    .replace(/^[-–•*]\s*/gm, '')
+    .replace(/\n+/g, ' ')
+    .trim();
+  if (clean.length <= maxLen) return clean;
+  var cut = clean.slice(0, maxLen);
+  var lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > 60 ? cut.slice(0, lastSpace) : cut) + '…';
 }
 
 /* Parse AI report into 3 sections */
@@ -464,6 +514,7 @@ function buildVisitCard(visit, index) {
   }
 
   const reportHTML = buildReportHTML(visit.aiReport);
+  const teaser = getReportTeaser(visit.aiReport);
 
   return `
   <div class="visit-card" id="vc-${index}">
@@ -473,6 +524,8 @@ function buildVisitCard(visit, index) {
         <div class="visit-title">${cleanTitle}</div>
         <div class="visit-chips">${chips}</div>
         ${kpis ? `<div class="visit-kpis">${kpis}</div>` : ''}
+        ${teaser ? `<div class="report-teaser">${teaser}</div>` : ''}
+        ${teaser ? `<span class="read-more-cta">اقرأ التقرير الكامل ›</span>` : ''}
         ${strip ? `<div class="visit-photos-strip">${strip}</div>` : ''}
       </div>
       <div class="visit-toggle">▼</div>
@@ -490,6 +543,68 @@ function buildVisitCard(visit, index) {
 function toggleCard(index) {
   const card = document.getElementById('vc-' + index);
   card.classList.toggle('open');
+}
+
+/* ── Filter logic ──────────────────────── */
+var _allVisits = [];
+var _activeFilter = 'all';
+
+function visitYearMonth(visit) {
+  const d = new Date(visit.startTime || visit.submissionDate);
+  if (isNaN(d)) return null;
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+function buildFilterBar(visits) {
+  const bar = document.getElementById('filter-bar');
+  if (!bar) return;
+
+  // Collect unique year-months in order
+  const seen = new Set();
+  const months = [];
+  visits.forEach(function(v) {
+    const ym = visitYearMonth(v);
+    if (ym && !seen.has(ym)) { seen.add(ym); months.push(ym); }
+  });
+
+  if (months.length <= 1) { bar.style.display = 'none'; return; }
+
+  let html = `<button class="filter-pill active" onclick="applyFilter('all')">الكل (${visits.length})</button>`;
+  months.forEach(function(ym) {
+    const count = visits.filter(function(v) { return visitYearMonth(v) === ym; }).length;
+    const [y, m] = ym.split('-');
+    const label = new Date(+y, +m - 1, 1).toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+    html += `<button class="filter-pill" data-ym="${ym}" onclick="applyFilter('${ym}')">${label} (${count})</button>`;
+  });
+  bar.innerHTML = html;
+}
+
+function applyFilter(ym) {
+  _activeFilter = ym;
+
+  // Update pill states
+  document.querySelectorAll('.filter-pill').forEach(function(p) {
+    p.classList.toggle('active',
+      ym === 'all' ? p.getAttribute('onclick') === "applyFilter('all')" : p.getAttribute('data-ym') === ym
+    );
+  });
+
+  const filtered = ym === 'all'
+    ? _allVisits
+    : _allVisits.filter(function(v) { return visitYearMonth(v) === ym; });
+
+  renderVisitList(filtered);
+}
+
+function renderVisitList(visits) {
+  const list = document.getElementById('visits-list');
+  if (!visits.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">🌱</div><p>لا توجد تقارير في هذه الفترة</p></div>';
+    return;
+  }
+  list.innerHTML = visits.map(function(v, i) { return buildVisitCard(v, i); }).join('');
+  const first = document.getElementById('vc-0');
+  if (first) first.classList.add('open');
 }
 
 function openLightbox(url) {
@@ -554,14 +669,13 @@ function render(data) {
   document.getElementById('stat-photos').textContent = totalPhotos || '—';
 
   // Visits
-  const list = document.getElementById('visits-list');
+  _allVisits = visits;
+  buildFilterBar(visits);
   if (!visits.length) {
-    list.innerHTML = `<div class="empty"><div class="empty-icon">🌱</div><p>لا توجد تقارير متاحة بعد</p></div>`;
+    document.getElementById('visits-list').innerHTML =
+      `<div class="empty"><div class="empty-icon">🌱</div><p>لا توجد تقارير متاحة بعد</p></div>`;
   } else {
-    list.innerHTML = visits.map((v, i) => buildVisitCard(v, i)).join('');
-    // Auto-open first card
-    const first = document.getElementById('vc-0');
-    if (first) first.classList.add('open');
+    renderVisitList(visits);
   }
 
   // Show app
