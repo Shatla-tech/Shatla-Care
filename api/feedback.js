@@ -37,8 +37,7 @@ export default async function handler(req, res) {
   }
 
   if (photoUrl) {
-    props['Image Feedback']   = { files: [{ name: 'client-photo.webp', external: { url: photoUrl } }] };
-    props['Uploaded Images?'] = { checkbox: true };
+    props['Image Feedback'] = { files: [{ name: 'client-photo.webp', external: { url: photoUrl } }] };
   }
 
   /* Create Monthly KPI page */
