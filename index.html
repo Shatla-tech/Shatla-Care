@@ -624,15 +624,14 @@ var SUPABASE_URL    = 'https://wgpkevvbiwlcmmeseuyf.supabase.co';
 var SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndncGtldnZiaXdsY21tZXNldXlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4OTY2MjEsImV4cCI6MjA4ODQ3MjYyMX0.MUiZg3sZhAxfmNL6H_BG9IBJSKSc29pfGnrOoYEF5ys';
 var SUPABASE_BUCKET = 'visit-photos';
 
-/* same order + descriptions as original Fillout form */
 var RATING_CATS = [
-  { key: 'communication',  label: 'التواصل',           desc: 'هل تلقيت إبلاغاً بالتشكيلات المهمة أو التوصيات أو المشكلات؟' },
+  { key: 'communication',  label: 'التواصل',           desc: 'هل قام فريقنا بإطلاعك على التحديثات المهمة أو التوصيات أو المشكلات؟' },
   { key: 'serviceQuality', label: 'جودة الخدمة',       desc: 'هل تم تنفيذ العمل بمستوى عالٍ من الجودة؟' },
-  { key: 'workCompletion', label: 'إكتمال الأعمال',    desc: 'هل تم الانتهاء من جميع المهام المجدولة بالكامل كما في الاتفاق؟' },
-  { key: 'issueResolution',label: 'حل المشكلات',       desc: 'هل تم التعامل مع أي مشكلات أو الإبلاغ عنها بأسلوب صحيح؟' },
-  { key: 'professionalism',label: 'الاحترافية',        desc: 'هل كان الفريق مهنياً واحترافياً طوال الزيارة؟' },
-  { key: 'cleanliness',    label: 'نظافة الموقع',      desc: 'هل تم ترك موقعك نظيفاً ومرتباً بعد انتهاء الخدمة؟' },
-  { key: 'beforeAfter',    label: 'المقارنة قبل وبعد', desc: 'هل لاحظت تحسناً واضحاً في مظهر المساحات الخضراء بعد الخدمة مقارنةً بما قبلها؟' },
+  { key: 'workCompletion', label: 'إكتمال الاعمال',    desc: 'هل تم الانتهاء من جميع المهام المجدولة بالكامل كما هو متوقع؟' },
+  { key: 'issueResolution',label: 'حل المشكلات',       desc: 'هل تم التعامل مع أي مشكلات تم الإبلاغ عنها مسبقًا بشكل صحيح؟' },
+  { key: 'professionalism',label: 'الاحترافية',        desc: 'هل كان الفريق مهذبًا واحترافيًا طوال الزيارة؟' },
+  { key: 'cleanliness',    label: 'نظافة الموقع',      desc: 'هل تم ترك موقعك نظيفًا ومرتبًا بعد انتهاء الخدمة؟' },
+  { key: 'beforeAfter',    label: 'المقارنة قبل وبعد', desc: 'هل لاحظت تحسنًا واضحًا في مظهر المساحات الخضراء لديك بعد الخدمة مقارنةً بما قبلها؟' },
   { key: 'overall',        label: 'الرضا العام',       desc: 'ما مدى رضاك عن الخدمة المقدمة؟' }
 ];
 
@@ -668,12 +667,12 @@ function buildFeedbackSection(visit, index) {
       ${rows}
       <div>
         <div class="rating-label" style="margin-bottom:4px">تعليق العميل</div>
-        <div class="rating-desc" style="margin-bottom:8px">مشاركتك — إيجابية أو انتقادية — تساعدنا على تحسين مستوى الخدمة وتلبية توقعاتك بشكل أفضل</div>
+        <div class="rating-desc" style="margin-bottom:8px">يرجى مشاركة ملاحظاتك حول تجربتك مع خدمتنا، سواء كانت إيجابية أو تتطلب تحسينًا. تعليقاتك تساعدنا على تطوير مستوى الخدمة وتلبية توقعاتك بشكل أفضل.</div>
         <textarea class="feedback-comment" id="fbcomment_${index}" placeholder="اكتب تعليقك هنا…" rows="3" maxlength="600"></textarea>
       </div>
       <div>
-        <div class="rating-label" style="margin-bottom:4px">إرفاق صورة <span style="font-weight:400;color:var(--text-muted)">(اختياري)</span></div>
-        <div class="rating-desc" style="margin-bottom:8px">مشاركة الصور تساعدنا على تقييم الحالة بشكل أدق وتحسين الخدمة</div>
+        <div class="rating-label" style="margin-bottom:4px">إرفاق الصور</div>
+        <div class="rating-desc" style="margin-bottom:8px">يرجى مشاركة ملاحظاتك حول تجربتك مع خدمتنا، سواء كانت إيجابية أو تتطلب تحسينًا. تعليقاتك تساعدنا على تطوير مستوى الخدمة وتلبية توقعاتك بشكل أفضل.</div>
         <label class="photo-upload-label" id="fblabel_${index}">
           <div id="fbphoto_preview_${index}">📷 اضغط لإضافة صورة</div>
           <input type="file" accept="image/*" onchange="onFeedbackPhoto(${index}, this)">
