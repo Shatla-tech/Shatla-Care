@@ -280,6 +280,71 @@
       background: var(--green-main); color: white; border-color: var(--green-main);
     }
     .filter-pill:active { opacity: 0.75; }
+
+    /* ── Feedback Section ────────────────────── */
+    .feedback-section {
+      border: 1.5px solid var(--green-border); border-radius: var(--radius-sm); overflow: hidden;
+    }
+    .feedback-toggle {
+      width: 100%; padding: 11px 14px; background: var(--green-light);
+      border: none; border-radius: 0; cursor: pointer; text-align: right;
+      font-family: 'Noto Sans Arabic', sans-serif; font-size: 13px; font-weight: 700;
+      color: var(--green-deep); display: flex; align-items: center; justify-content: space-between;
+      -webkit-tap-highlight-color: transparent; user-select: none;
+    }
+    .feedback-toggle:active { background: var(--green-border); }
+    .feedback-toggle-icon { transition: transform 0.2s; font-style: normal; }
+    .feedback-section.fb-open .feedback-toggle-icon { transform: rotate(180deg); }
+    .feedback-form-wrap { display: none; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+    .feedback-section:not(.fb-open) .feedback-form-wrap { display: none; }
+    .feedback-section.fb-open .feedback-form-wrap { display: flex; }
+
+    .rating-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .rating-label { font-size: 13px; color: var(--text); flex: 1; min-width: 0; }
+    .stars { display: flex; gap: 3px; direction: ltr; flex-shrink: 0; }
+    .star {
+      font-size: 24px; cursor: pointer; color: #d1d5db; line-height: 1;
+      transition: color 0.1s; -webkit-tap-highlight-color: transparent;
+      user-select: none; touch-action: manipulation;
+    }
+    .star.lit { color: #f59e0b; }
+    .star:active { transform: scale(1.15); }
+
+    .feedback-comment {
+      width: 100%; border: 1.5px solid var(--green-border); border-radius: var(--radius-sm);
+      padding: 10px 12px; font-family: 'Noto Sans Arabic', sans-serif;
+      font-size: 13px; color: var(--text); resize: none; background: var(--bg);
+      outline: none; min-height: 72px;
+    }
+    .feedback-comment:focus { border-color: var(--green-main); }
+
+    .photo-upload-label {
+      display: block; border: 2px dashed var(--green-border); border-radius: var(--radius-sm);
+      padding: 14px; text-align: center; cursor: pointer;
+      color: var(--text-muted); font-size: 13px; transition: border-color 0.15s;
+    }
+    .photo-upload-label.has-photo { border-color: var(--green-main); border-style: solid; }
+    .photo-upload-label img { max-height: 100px; border-radius: 6px; display: block; margin: 0 auto 6px; }
+    .photo-upload-label input { display: none; }
+
+    .btn-feedback-submit {
+      width: 100%; padding: 12px; border-radius: var(--radius-sm);
+      background: var(--green-main); color: white; border: none;
+      font-family: 'Noto Sans Arabic', sans-serif; font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn-feedback-submit:active { background: var(--green-deep); }
+    .btn-feedback-submit:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .feedback-done {
+      padding: 20px 14px; text-align: center;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
+    .feedback-done-icon { font-size: 36px; }
+    .feedback-done p { font-size: 14px; font-weight: 700; color: var(--green-deep); }
+    .feedback-done small { font-size: 12px; color: var(--text-muted); }
   </style>
 </head>
 <body>
@@ -513,8 +578,9 @@ function buildVisitCard(visit, index) {
     </div>`;
   }
 
-  const reportHTML = buildReportHTML(visit.aiReport);
-  const teaser = getReportTeaser(visit.aiReport);
+  const reportHTML  = buildReportHTML(visit.aiReport);
+  const teaser      = getReportTeaser(visit.aiReport);
+  const feedbackHTML = buildFeedbackSection(visit, index);
 
   return `
   <div class="visit-card" id="vc-${index}">
@@ -535,9 +601,162 @@ function buildVisitCard(visit, index) {
         ${details ? `<div class="detail-row">${details}</div>` : ''}
         ${reportHTML}
         ${gallery}
+        ${feedbackHTML}
       </div>
     </div>
   </div>`;
+}
+
+/* ── Feedback ──────────────────────────── */
+var RATING_CATS = [
+  { key: 'overall',        label: 'الرضا العام' },
+  { key: 'communication',  label: 'التواصل' },
+  { key: 'serviceQuality', label: 'جودة الخدمة' },
+  { key: 'workCompletion', label: 'إتمام العمل' },
+  { key: 'issueResolution',label: 'حل المشكلات' },
+  { key: 'professionalism',label: 'الاحترافية' },
+  { key: 'cleanliness',    label: 'نظافة الموقع' },
+  { key: 'beforeAfter',    label: 'قبل وبعد' }
+];
+
+function buildFeedbackSection(visit, index) {
+  var submitted = localStorage.getItem('fb_done_' + visit.id) === '1';
+
+  if (visit.hasFeedback || submitted) {
+    return `<div class="feedback-section">
+      <div class="feedback-done">
+        <div class="feedback-done-icon">✅</div>
+        <p>شكراً على تقييمك!</p>
+        <small>تقييمك يساعدنا على تحسين خدمتنا</small>
+      </div>
+    </div>`;
+  }
+
+  var rows = RATING_CATS.map(function(c) {
+    var stars = [1,2,3,4,5].map(function(n) {
+      return `<span class="star" data-idx="${index}" data-cat="${c.key}" data-val="${n}" onclick="rateStar(this)">★</span>`;
+    }).join('');
+    return `<div class="rating-row">
+      <span class="rating-label">${c.label}</span>
+      <div class="stars" id="stars_${index}_${c.key}">${stars}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="feedback-section" id="fb_${index}">
+    <button type="button" class="feedback-toggle" onclick="toggleFeedback(${index})">
+      <span>⭐ قيّم هذه الزيارة</span>
+      <i class="feedback-toggle-icon">▼</i>
+    </button>
+    <div class="feedback-form-wrap" id="fbform_${index}">
+      ${rows}
+      <textarea class="feedback-comment" id="fbcomment_${index}" placeholder="تعليقك (اختياري)…" rows="3" maxlength="500"></textarea>
+      <label class="photo-upload-label" id="fblabel_${index}">
+        <div id="fbphoto_preview_${index}">📷 أضف صورة (اختياري)</div>
+        <input type="file" accept="image/*" onchange="onFeedbackPhoto(${index}, this)">
+      </label>
+      <button type="button" class="btn-feedback-submit" id="fbsubmit_${index}"
+        onclick="submitFeedback(${index}, '${visit.id}')">إرسال التقييم</button>
+    </div>
+  </div>`;
+}
+
+function toggleFeedback(index) {
+  var sec = document.getElementById('fb_' + index);
+  if (sec) sec.classList.toggle('fb-open');
+}
+
+var _fbRatings = {};   // { index: { cat: val } }
+var _fbPhotos  = {};   // { index: { base64, mime } }
+
+function rateStar(el) {
+  var idx = el.dataset.idx;
+  var cat = el.dataset.cat;
+  var val = parseInt(el.dataset.val, 10);
+  if (!_fbRatings[idx]) _fbRatings[idx] = {};
+  _fbRatings[idx][cat] = val;
+
+  var container = document.getElementById('stars_' + idx + '_' + cat);
+  if (!container) return;
+  var stars = container.querySelectorAll('.star');
+  stars.forEach(function(s, i) {
+    s.classList.toggle('lit', i < val);
+  });
+}
+
+function onFeedbackPhoto(index, input) {
+  var file = input.files[0];
+  if (!file) return;
+  var label = document.getElementById('fblabel_' + index);
+  var preview = document.getElementById('fbphoto_preview_' + index);
+
+  var canvas = document.createElement('canvas');
+  var img = new Image();
+  var url = URL.createObjectURL(file);
+  img.onload = function() {
+    var MAX = 1200;
+    var w = img.width, h = img.height;
+    if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+    if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    canvas.toBlob(function(blob) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var b64 = e.target.result.split(',')[1];
+        _fbPhotos[index] = { base64: b64, mime: 'image/webp' };
+        preview.innerHTML = '<img src="' + e.target.result + '" alt=""> صورة مختارة ✓';
+        if (label) label.classList.add('has-photo');
+      };
+      reader.readAsDataURL(blob);
+    }, 'image/webp', 0.82);
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+}
+
+async function submitFeedback(index, visitId) {
+  var ratings = _fbRatings[index] || {};
+
+  // require at least overall rating
+  if (!ratings.overall) {
+    var row = document.getElementById('stars_' + index + '_overall');
+    if (row) { row.style.outline = '2px solid #e53935'; row.style.borderRadius = '4px'; }
+    setTimeout(function() { if (row) row.style.outline = ''; }, 1800);
+    return;
+  }
+
+  var btn = document.getElementById('fbsubmit_' + index);
+  if (btn) { btn.disabled = true; btn.textContent = 'جارٍ الإرسال…'; }
+
+  var comment = (document.getElementById('fbcomment_' + index) || {}).value || '';
+  var photo   = _fbPhotos[index] || {};
+
+  try {
+    var body = { visit_id: visitId, ratings: ratings, comment: comment };
+    if (photo.base64) { body.photoBase64 = photo.base64; body.photoMime = photo.mime; }
+
+    var res = await fetch('/api/feedback', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(body)
+    });
+
+    if (!res.ok) throw new Error('server error');
+
+    localStorage.setItem('fb_done_' + visitId, '1');
+
+    var sec = document.getElementById('fb_' + index);
+    if (sec) sec.outerHTML = `<div class="feedback-section">
+      <div class="feedback-done">
+        <div class="feedback-done-icon">✅</div>
+        <p>شكراً على تقييمك!</p>
+        <small>تقييمك يساعدنا على تحسين خدمتنا</small>
+      </div>
+    </div>`;
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'إرسال التقييم'; }
+    alert('حدث خطأ، يرجى المحاولة مجدداً');
+  }
 }
 
 function toggleCard(index) {

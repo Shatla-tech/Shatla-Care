@@ -72,7 +72,8 @@ export default async function handler(req, res) {
         photos:         (props['Photos']?.files || []).map(f => f.external?.url || f.file?.url || '').filter(u => u && u.startsWith('http')),
         aiReport:       (props['Ai Report']?.rich_text || []).map(r => r.plain_text).join(''),
         reportedStatus: (props['Reported Status']?.multi_select || []).map(s => s.name),
-        tags:           (props['Tags']?.multi_select || []).map(s => s.name)
+        tags:           (props['Tags']?.multi_select || []).map(s => s.name),
+        hasFeedback:    (props['Monthly KPI Report']?.relation || []).length > 0
       };
     });
 
