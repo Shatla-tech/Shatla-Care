@@ -1,8 +1,5 @@
-const NOTION_TOKEN      = process.env.NOTION_TOKEN;
-const SUPABASE_URL      = process.env.SUPABASE_URL;       // e.g. https://xyz.supabase.co
-const SUPABASE_KEY      = process.env.SUPABASE_SERVICE_KEY;
-const MONTHLY_KPI_DB    = 'f21919ca-5478-41f9-ab9b-6f1e6a71abfa';
-const BUCKET            = 'shatla-photos';
+const NOTION_TOKEN   = process.env.NOTION_TOKEN;
+const MONTHLY_KPI_DB = 'f21919ca-5478-41f9-ab9b-6f1e6a71abfa';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,7 +8,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { visit_id, ratings, comment, photoBase64, photoMime } = req.body || {};
+  const { visit_id, ratings, comment, photoUrl } = req.body || {};
   if (!visit_id || !ratings) return res.status(400).json({ error: 'Missing visit_id or ratings' });
 
   const nH = {
@@ -20,32 +17,6 @@ export default async function handler(req, res) {
     'Content-Type':   'application/json'
   };
 
-  /* ── 1. Optional photo upload to Supabase ── */
-  let photoUrl = null;
-  if (photoBase64 && SUPABASE_URL && SUPABASE_KEY) {
-    try {
-      const buf  = Buffer.from(photoBase64, 'base64');
-      const mime = photoMime || 'image/webp';
-      const ext  = mime.includes('webp') ? 'webp' : 'jpg';
-      const path = `feedback/${visit_id}/${Date.now()}.${ext}`;
-
-      const up = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
-        method:  'POST',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type':  mime,
-          'x-upsert':      'true'
-        },
-        body: buf
-      });
-
-      if (up.ok) {
-        photoUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
-      }
-    } catch (_) { /* non-fatal — feedback still saves without photo */ }
-  }
-
-  /* ── 2. Build Notion page properties ── */
   const num = (v) => v != null && v > 0 ? { number: Number(v) } : { number: null };
 
   const props = {
@@ -66,12 +37,11 @@ export default async function handler(req, res) {
   }
 
   if (photoUrl) {
-    props['Image Feedback'] = {
-      files: [{ name: 'client-photo.webp', external: { url: photoUrl } }]
-    };
+    props['Image Feedback']   = { files: [{ name: 'client-photo.webp', external: { url: photoUrl } }] };
+    props['Uploaded Images?'] = { checkbox: true };
   }
 
-  /* ── 3. Create Monthly KPI page ── */
+  /* Create Monthly KPI page */
   const createRes = await fetch('https://api.notion.com/v1/pages', {
     method:  'POST',
     headers: nH,
@@ -85,14 +55,14 @@ export default async function handler(req, res) {
 
   const kpiPage = await createRes.json();
 
-  /* ── 4. Link KPI page back to Task via Monthly KPI Report relation ── */
+  /* Link KPI page back to Task */
   await fetch(`https://api.notion.com/v1/pages/${visit_id}`, {
     method:  'PATCH',
     headers: nH,
     body:    JSON.stringify({
       properties: { 'Monthly KPI Report': { relation: [{ id: kpiPage.id }] } }
     })
-  }).catch(() => { /* non-fatal if this fails */ });
+  }).catch(() => {});
 
   return res.json({ ok: true, kpiPageId: kpiPage.id });
 }

@@ -345,6 +345,18 @@
     .feedback-done-icon { font-size: 36px; }
     .feedback-done p { font-size: 14px; font-weight: 700; color: var(--green-deep); }
     .feedback-done small { font-size: 12px; color: var(--text-muted); }
+
+    /* rating row — vertical layout with description */
+    .rating-row {
+      display: flex; flex-direction: column; gap: 6px;
+      padding-bottom: 12px; border-bottom: 1px solid var(--green-border);
+    }
+    .rating-row:last-of-type { border-bottom: none; padding-bottom: 0; }
+    .rating-row-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .rating-label { font-size: 13px; font-weight: 700; color: var(--text); }
+    .rating-required { color: #e53935; }
+    .rating-desc { font-size: 12px; color: var(--text-muted); line-height: 1.55; }
+    .rating-error .stars { outline: 2px solid #e53935; border-radius: 4px; }
   </style>
 </head>
 <body>
@@ -555,7 +567,7 @@ function buildVisitCard(visit, index) {
     const shown = visit.photos.slice(0, 3);
     const extra = visit.photos.length - shown.length;
     shown.forEach((url, i) => {
-      strip += `<img class="strip-photo" src="${url}" alt="" loading="lazy" onerror="this.style.display='none'">`;
+      strip += `<img class="strip-photo" src="${url}" alt="" onerror="this.style.opacity='0'">`;
     });
     if (extra > 0) strip += `<div class="strip-more">+${extra}</div>`;
   }
@@ -608,37 +620,42 @@ function buildVisitCard(visit, index) {
 }
 
 /* ── Feedback ──────────────────────────── */
+var SUPABASE_URL    = 'https://wgpkevvbiwlcmmeseuyf.supabase.co';
+var SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndncGtldnZiaXdsY21tZXNldXlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4OTY2MjEsImV4cCI6MjA4ODQ3MjYyMX0.MUiZg3sZhAxfmNL6H_BG9IBJSKSc29pfGnrOoYEF5ys';
+var SUPABASE_BUCKET = 'visit-photos';
+
+/* same order + descriptions as original Fillout form */
 var RATING_CATS = [
-  { key: 'overall',        label: 'الرضا العام' },
-  { key: 'communication',  label: 'التواصل' },
-  { key: 'serviceQuality', label: 'جودة الخدمة' },
-  { key: 'workCompletion', label: 'إتمام العمل' },
-  { key: 'issueResolution',label: 'حل المشكلات' },
-  { key: 'professionalism',label: 'الاحترافية' },
-  { key: 'cleanliness',    label: 'نظافة الموقع' },
-  { key: 'beforeAfter',    label: 'قبل وبعد' }
+  { key: 'communication',  label: 'التواصل',           desc: 'هل تلقيت إبلاغاً بالتشكيلات المهمة أو التوصيات أو المشكلات؟' },
+  { key: 'serviceQuality', label: 'جودة الخدمة',       desc: 'هل تم تنفيذ العمل بمستوى عالٍ من الجودة؟' },
+  { key: 'workCompletion', label: 'إكتمال الأعمال',    desc: 'هل تم الانتهاء من جميع المهام المجدولة بالكامل كما في الاتفاق؟' },
+  { key: 'issueResolution',label: 'حل المشكلات',       desc: 'هل تم التعامل مع أي مشكلات أو الإبلاغ عنها بأسلوب صحيح؟' },
+  { key: 'professionalism',label: 'الاحترافية',        desc: 'هل كان الفريق مهنياً واحترافياً طوال الزيارة؟' },
+  { key: 'cleanliness',    label: 'نظافة الموقع',      desc: 'هل تم ترك موقعك نظيفاً ومرتباً بعد انتهاء الخدمة؟' },
+  { key: 'beforeAfter',    label: 'المقارنة قبل وبعد', desc: 'هل لاحظت تحسناً واضحاً في مظهر المساحات الخضراء بعد الخدمة مقارنةً بما قبلها؟' },
+  { key: 'overall',        label: 'الرضا العام',       desc: 'ما مدى رضاك عن الخدمة المقدمة؟' }
 ];
 
 function buildFeedbackSection(visit, index) {
   var submitted = localStorage.getItem('fb_done_' + visit.id) === '1';
-
   if (visit.hasFeedback || submitted) {
-    return `<div class="feedback-section">
-      <div class="feedback-done">
-        <div class="feedback-done-icon">✅</div>
-        <p>شكراً على تقييمك!</p>
-        <small>تقييمك يساعدنا على تحسين خدمتنا</small>
-      </div>
-    </div>`;
+    return `<div class="feedback-section"><div class="feedback-done">
+      <div class="feedback-done-icon">✅</div>
+      <p>شكراً على تقييمك!</p>
+      <small>تقييمك يساعدنا على تحسين خدمتنا</small>
+    </div></div>`;
   }
 
   var rows = RATING_CATS.map(function(c) {
     var stars = [1,2,3,4,5].map(function(n) {
       return `<span class="star" data-idx="${index}" data-cat="${c.key}" data-val="${n}" onclick="rateStar(this)">★</span>`;
     }).join('');
-    return `<div class="rating-row">
-      <span class="rating-label">${c.label}</span>
-      <div class="stars" id="stars_${index}_${c.key}">${stars}</div>
+    return `<div class="rating-row" id="rrow_${index}_${c.key}">
+      <div class="rating-row-top">
+        <span class="rating-label">${c.label} <span class="rating-required">*</span></span>
+        <div class="stars" id="stars_${index}_${c.key}">${stars}</div>
+      </div>
+      <div class="rating-desc">${c.desc}</div>
     </div>`;
   }).join('');
 
@@ -649,11 +666,19 @@ function buildFeedbackSection(visit, index) {
     </button>
     <div class="feedback-form-wrap" id="fbform_${index}">
       ${rows}
-      <textarea class="feedback-comment" id="fbcomment_${index}" placeholder="تعليقك (اختياري)…" rows="3" maxlength="500"></textarea>
-      <label class="photo-upload-label" id="fblabel_${index}">
-        <div id="fbphoto_preview_${index}">📷 أضف صورة (اختياري)</div>
-        <input type="file" accept="image/*" onchange="onFeedbackPhoto(${index}, this)">
-      </label>
+      <div>
+        <div class="rating-label" style="margin-bottom:4px">تعليق العميل</div>
+        <div class="rating-desc" style="margin-bottom:8px">مشاركتك — إيجابية أو انتقادية — تساعدنا على تحسين مستوى الخدمة وتلبية توقعاتك بشكل أفضل</div>
+        <textarea class="feedback-comment" id="fbcomment_${index}" placeholder="اكتب تعليقك هنا…" rows="3" maxlength="600"></textarea>
+      </div>
+      <div>
+        <div class="rating-label" style="margin-bottom:4px">إرفاق صورة <span style="font-weight:400;color:var(--text-muted)">(اختياري)</span></div>
+        <div class="rating-desc" style="margin-bottom:8px">مشاركة الصور تساعدنا على تقييم الحالة بشكل أدق وتحسين الخدمة</div>
+        <label class="photo-upload-label" id="fblabel_${index}">
+          <div id="fbphoto_preview_${index}">📷 اضغط لإضافة صورة</div>
+          <input type="file" accept="image/*" onchange="onFeedbackPhoto(${index}, this)">
+        </label>
+      </div>
       <button type="button" class="btn-feedback-submit" id="fbsubmit_${index}"
         onclick="submitFeedback(${index}, '${visit.id}')">إرسال التقييم</button>
     </div>
@@ -665,8 +690,90 @@ function toggleFeedback(index) {
   if (sec) sec.classList.toggle('fb-open');
 }
 
-var _fbRatings = {};   // { index: { cat: val } }
-var _fbPhotos  = {};   // { index: { base64, mime } }
+var _fbRatings  = {};  // { index: { cat: val } }
+var _fbBlobs    = {};  // { index: Blob }
+var _fbLocks    = {};  // { index: bool } — prevent double-submit
+
+/* ── EXIF orientation (same as Pulsar Ops) ── */
+function getExifOrientation(ab) {
+  var view = new DataView(ab);
+  if (view.getUint16(0, false) !== 0xFFD8) return 1;
+  var len = ab.byteLength, offset = 2;
+  while (offset < len) {
+    if (view.getUint16(offset, false) === 0xFFE1) {
+      offset += 4;
+      if (view.getUint32(offset, false) !== 0x45786966) return 1;
+      var little = view.getUint16(offset += 6, false) === 0x4949;
+      offset += view.getUint32(offset + 4, little);
+      var tags = view.getUint16(offset, little);
+      offset += 2;
+      for (var i = 0; i < tags; i++) {
+        if (view.getUint16(offset + (i * 12), little) === 0x0112) {
+          return view.getUint16(offset + (i * 12) + 8, little);
+        }
+      }
+    } else if ((view.getUint16(offset, false) & 0xFF00) !== 0xFF00) {
+      break;
+    } else {
+      offset += 2 + view.getUint16(offset + 2, false);
+    }
+  }
+  return 1;
+}
+
+function applyExifRotation(ctx, ori, w, h) {
+  switch (ori) {
+    case 2: ctx.transform(-1, 0, 0,  1, w, 0); break;
+    case 3: ctx.transform(-1, 0, 0, -1, w, h); break;
+    case 4: ctx.transform( 1, 0, 0, -1, 0, h); break;
+    case 5: ctx.transform( 0, 1, 1,  0, 0, 0); break;
+    case 6: ctx.transform( 0, 1,-1,  0, h, 0); break;
+    case 7: ctx.transform( 0,-1,-1,  0, h, w); break;
+    case 8: ctx.transform( 0,-1, 1,  0, 0, w); break;
+  }
+}
+
+function compressFeedbackImg(file) {
+  return new Promise(function(resolve) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var ab  = e.target.result;
+      var ori = 1;
+      try { ori = getExifOrientation(ab); } catch(ex) {}
+      var blob = new Blob([ab], { type: file.type });
+      var url  = URL.createObjectURL(blob);
+      var img  = new Image();
+      img.onload = function() {
+        URL.revokeObjectURL(url);
+        try {
+          var MAX = 1280, Q = 0.82;
+          var w = img.width, h = img.height;
+          var swapped = (ori >= 5 && ori <= 8);
+          var tw = swapped ? h : w, th = swapped ? w : h;
+          if (tw > MAX || th > MAX) {
+            if (tw >= th) { th = Math.round(th * MAX / tw); tw = MAX; }
+            else          { tw = Math.round(tw * MAX / th); th = MAX; }
+          }
+          var cv = document.createElement('canvas');
+          cv.width = tw; cv.height = th;
+          var ctx = cv.getContext('2d');
+          if (swapped) { ctx.translate(th / 2, tw / 2); } else { ctx.translate(tw / 2, th / 2); }
+          applyExifRotation(ctx, ori, tw, th);
+          if (swapped) { ctx.drawImage(img, -th / 2, -tw / 2, th, tw); }
+          else         { ctx.drawImage(img, -tw / 2, -th / 2, tw, th); }
+          cv.toBlob(function(b) { resolve(b || file); }, 'image/webp', Q);
+        } catch(err) { resolve(file); }
+      };
+      img.onerror = function() { resolve(file); };
+      var tr = new FileReader();
+      tr.onload = function(ev) { img.src = ev.target.result; };
+      tr.onerror = function() { resolve(file); };
+      tr.readAsDataURL(new Blob([ab], { type: file.type }));
+    };
+    reader.onerror = function() { resolve(file); };
+    reader.readAsArrayBuffer(file);
+  });
+}
 
 function rateStar(el) {
   var idx = el.dataset.idx;
@@ -674,88 +781,128 @@ function rateStar(el) {
   var val = parseInt(el.dataset.val, 10);
   if (!_fbRatings[idx]) _fbRatings[idx] = {};
   _fbRatings[idx][cat] = val;
-
   var container = document.getElementById('stars_' + idx + '_' + cat);
   if (!container) return;
-  var stars = container.querySelectorAll('.star');
-  stars.forEach(function(s, i) {
+  container.querySelectorAll('.star').forEach(function(s, i) {
     s.classList.toggle('lit', i < val);
   });
+  /* clear any error highlight on this row */
+  var row = document.getElementById('rrow_' + idx + '_' + cat);
+  if (row) row.classList.remove('rating-error');
 }
 
 function onFeedbackPhoto(index, input) {
   var file = input.files[0];
   if (!file) return;
-  var label = document.getElementById('fblabel_' + index);
+  var label   = document.getElementById('fblabel_' + index);
   var preview = document.getElementById('fbphoto_preview_' + index);
+  if (preview) preview.textContent = 'جارٍ المعالجة…';
 
-  var canvas = document.createElement('canvas');
-  var img = new Image();
-  var url = URL.createObjectURL(file);
-  img.onload = function() {
-    var MAX = 1200;
-    var w = img.width, h = img.height;
-    if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
-    if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
-    canvas.width = w; canvas.height = h;
-    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-    canvas.toBlob(function(blob) {
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        var b64 = e.target.result.split(',')[1];
-        _fbPhotos[index] = { base64: b64, mime: 'image/webp' };
-        preview.innerHTML = '<img src="' + e.target.result + '" alt=""> صورة مختارة ✓';
-        if (label) label.classList.add('has-photo');
-      };
-      reader.readAsDataURL(blob);
-    }, 'image/webp', 0.82);
-    URL.revokeObjectURL(url);
-  };
-  img.src = url;
+  compressFeedbackImg(file).then(function(blob) {
+    _fbBlobs[index] = blob;
+    var objUrl = URL.createObjectURL(blob);
+    if (preview) preview.innerHTML = '<img src="' + objUrl + '" alt=""> صورة مختارة ✓';
+    if (label)   label.classList.add('has-photo');
+  });
+}
+
+async function uploadFeedbackPhoto(blob, visitId) {
+  var path = 'feedback/' + visitId + '/' + Date.now() + '.webp';
+  var res  = await fetch(SUPABASE_URL + '/storage/v1/object/' + SUPABASE_BUCKET + '/' + path, {
+    method:  'POST',
+    headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON, 'Content-Type': 'image/webp', 'x-upsert': 'true' },
+    body:    blob
+  });
+  if (!res.ok) return null;
+  return SUPABASE_URL + '/storage/v1/object/public/' + SUPABASE_BUCKET + '/' + path;
+}
+
+function showFeedbackToast(message) {
+  var toast = document.createElement('div');
+  toast.textContent = message;
+  toast.style.cssText = [
+    'position:fixed','bottom:24px','left:50%','transform:translateX(-50%)',
+    'background:#075e4e','color:#fff','padding:12px 24px','border-radius:24px',
+    'font-size:14px','font-weight:700','z-index:9999',
+    'box-shadow:0 4px 16px rgba(0,0,0,0.25)',
+    'transition:opacity 0.5s','opacity:1'
+  ].join(';');
+  document.body.appendChild(toast);
+  setTimeout(function() { toast.style.opacity = '0'; }, 2800);
+  setTimeout(function() { toast.remove(); }, 3400);
 }
 
 async function submitFeedback(index, visitId) {
+  if (_fbLocks[index]) return;  /* prevent double-tap */
+
   var ratings = _fbRatings[index] || {};
 
-  // require at least overall rating
-  if (!ratings.overall) {
-    var row = document.getElementById('stars_' + index + '_overall');
-    if (row) { row.style.outline = '2px solid #e53935'; row.style.borderRadius = '4px'; }
-    setTimeout(function() { if (row) row.style.outline = ''; }, 1800);
-    return;
-  }
+  /* validate — all categories required */
+  var missing = false;
+  RATING_CATS.forEach(function(c) {
+    if (!ratings[c.key]) {
+      var row = document.getElementById('rrow_' + index + '_' + c.key);
+      if (row) row.classList.add('rating-error');
+      missing = true;
+    }
+  });
+  if (missing) { showFeedbackToast('يرجى تقييم جميع الفئات'); return; }
 
+  _fbLocks[index] = true;
   var btn = document.getElementById('fbsubmit_' + index);
   if (btn) { btn.disabled = true; btn.textContent = 'جارٍ الإرسال…'; }
 
-  var comment = (document.getElementById('fbcomment_' + index) || {}).value || '';
-  var photo   = _fbPhotos[index] || {};
-
   try {
-    var body = { visit_id: visitId, ratings: ratings, comment: comment };
-    if (photo.base64) { body.photoBase64 = photo.base64; body.photoMime = photo.mime; }
+    var comment  = (document.getElementById('fbcomment_' + index) || {}).value || '';
+    var photoUrl = null;
+    if (_fbBlobs[index]) {
+      photoUrl = await uploadFeedbackPhoto(_fbBlobs[index], visitId);
+    }
 
     var res = await fetch('/api/feedback', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(body)
+      body:    JSON.stringify({ visit_id: visitId, ratings: ratings, comment: comment, photoUrl: photoUrl })
     });
 
     if (!res.ok) throw new Error('server error');
 
     localStorage.setItem('fb_done_' + visitId, '1');
 
+    /* Build receipt-style summary so client can verify submission */
+    var ratingRows = RATING_CATS.map(function(c) {
+      var val   = ratings[c.key] || 0;
+      var stars = [1,2,3,4,5].map(function(n) {
+        return '<span style="color:' + (n <= val ? '#f59e0b' : '#d1d5db') + ';font-size:15px">★</span>';
+      }).join('');
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #e6f4f1">'
+        + '<span style="font-size:12px;color:var(--text)">' + c.label + '</span>'
+        + '<span style="direction:ltr">' + stars + '</span></div>';
+    }).join('');
+
+    var commentSnippet = comment.trim()
+      ? '<div style="font-size:12px;color:var(--text-muted);margin-top:10px;padding:8px 12px;background:#f0faf8;border-radius:8px;line-height:1.6">"' + comment.trim() + '"</div>'
+      : '';
+
+    var doneHTML = '<div class="feedback-section"><div style="padding:16px">'
+      + '<div style="text-align:center;margin-bottom:14px">'
+      + '<div style="font-size:30px">✅</div>'
+      + '<p style="font-size:14px;font-weight:700;color:var(--green-deep);margin:4px 0 2px">شكراً على تقييمك!</p>'
+      + '<small style="font-size:12px;color:var(--text-muted)">تم تسجيل تقييمك بنجاح</small>'
+      + '</div>'
+      + ratingRows
+      + commentSnippet
+      + '</div></div>';
+
     var sec = document.getElementById('fb_' + index);
-    if (sec) sec.outerHTML = `<div class="feedback-section">
-      <div class="feedback-done">
-        <div class="feedback-done-icon">✅</div>
-        <p>شكراً على تقييمك!</p>
-        <small>تقييمك يساعدنا على تحسين خدمتنا</small>
-      </div>
-    </div>`;
+    if (sec) sec.outerHTML = doneHTML;
+
+    showFeedbackToast('✅ تم إرسال تقييمك بنجاح');
+
   } catch (e) {
+    _fbLocks[index] = false;
     if (btn) { btn.disabled = false; btn.textContent = 'إرسال التقييم'; }
-    alert('حدث خطأ، يرجى المحاولة مجدداً');
+    showFeedbackToast('حدث خطأ — يرجى المحاولة مجدداً');
   }
 }
 
