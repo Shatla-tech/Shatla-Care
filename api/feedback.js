@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { visit_id, ratings, comment, photoUrl } = req.body || {};
+  const { visit_id, ratings, comment, photoUrls } = req.body || {};
   if (!visit_id || !ratings) return res.status(400).json({ error: 'Missing visit_id or ratings' });
 
   const nH = {
@@ -36,8 +36,13 @@ export default async function handler(req, res) {
     props['Client Comment'] = { rich_text: [{ text: { content: comment.trim() } }] };
   }
 
-  if (photoUrl) {
-    props['Image Feedback'] = { files: [{ name: 'client-photo.webp', external: { url: photoUrl } }] };
+  const urls = Array.isArray(photoUrls) ? photoUrls.filter(Boolean) : [];
+  if (urls.length) {
+    props['Image Feedback'] = {
+      files: urls.map(function(url, i) {
+        return { name: 'client-photo-' + (i + 1) + '.webp', external: { url: url } };
+      })
+    };
   }
 
   /* Create Monthly KPI page */
